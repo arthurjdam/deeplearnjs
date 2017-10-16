@@ -31,19 +31,19 @@ import {Array1D, NDArrayMathGPU, Scalar} from 'deeplearn';
 const math = new NDArrayMathGPU();
 const a = Array1D.new([1, 2, 3]);
 const b = Scalar.new(2);
-math.scope(() => {
-  const result = math.add(a, b);
-  console.log(result.getValues());  // Float32Array([3, 4, 5])
-});
+
+const result = math.add(a, b);
+// Float32Array([3, 4, 5])
+result.getValuesAsync().then(values => console.log(values));
 ```
 
 #### ES3/ES5 JavaScript
 
 You can also use **deeplearn.js** with plain JavaScript. Load the latest version
-of the library directly from the Google CDN:
+of the library from [unpkg](https://unpkg.com):
 
 ```html
-<script src="https://storage.googleapis.com/learnjs-data/deeplearn-latest.js"></script>
+<script src="https://unpkg.com/deeplearn"></script>
 ```
 
 To use a specific version, replace `latest` with a version number
@@ -53,13 +53,15 @@ After importing the library, the API will be available as `deeplearn` in the
 global namespace:
 
 ```js
-var math = new deeplearn.NDArrayMathGPU();
-var a = deeplearn.Array1D.new([1, 2, 3]);
-var b = deeplearn.Scalar.new(2);
-math.scope(function() {
-  var result = math.add(a, b);
-  console.log(result.getValues());  // Float32Array([3, 4, 5])
-});
+var dl = deeplearn;
+
+var math = new dl.NDArrayMathGPU();
+var a = dl.Array1D.new([1, 2, 3]);
+var b = dl.Scalar.new(2);
+
+var result = math.add(a, b);
+// Float32Array([3, 4, 5])
+result.getValuesAsync().then(values => console.log(values));
 ```
 
 
@@ -81,7 +83,7 @@ well as the [Clang-Format VSCode extension](https://marketplace.visualstudio.com
 To interactively develop any of the demos (e.g. `demos/nn-art/`):
 
 ```bash
-$ ./scripts/watch-demo demos/nn-art/nn-art.ts
+$ ./scripts/watch-demo demos/nn-art
 >> Starting up http-server, serving ./
 >> Available on:
 >>   http://127.0.0.1:8080
@@ -89,7 +91,7 @@ $ ./scripts/watch-demo demos/nn-art/nn-art.ts
 >> 1357589 bytes written to dist/demos/nn-art/bundle.js (0.85 seconds) at 10:34:45 AM
 ```
 
-Then visit `http://localhost:8080/demos/nn-art/nn-art-demo.html`. The
+Then visit `http://localhost:8080/demos/nn-art/`. The
 `watch-demo` script monitors for changes of typescript code and does
 incremental compilation (~200-400ms), so users can have a fast edit-refresh
 cycle when developing apps.
@@ -105,8 +107,8 @@ To build a standalone ES5 library that can be imported in the browser with a
 `<script>` tag:
 
 ```bash
-$ ./scripts/build-standalone.sh VERSION # Builds standalone library.
->> Stored standalone library at dist/deeplearn-VERSION(.min).js
+$ ./scripts/build-standalone.sh # Builds standalone library.
+>> Stored standalone library at dist/deeplearn(.min).js
 ```
 
 To do a dry run and test building an npm package:

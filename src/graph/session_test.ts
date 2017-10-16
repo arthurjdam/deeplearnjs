@@ -27,8 +27,9 @@ import {MomentumOptimizer} from './optimizers/momentum_optimizer';
 import {RMSPropOptimizer} from './optimizers/rmsprop_optimizer';
 import {SGDOptimizer} from './optimizers/sgd_optimizer';
 import {AdadeltaOptimizer} from './optimizers/adadelta_optimizer';
+import {AdamOptimizer} from './optimizers/adam_optimizer';
+import {AdamMaxOptimizer} from './optimizers/adamax_optimizer';
 import {FeedDictionary, FeedEntry, Session} from './session';
-
 
 describe('FeedDictionary', () => {
   it('ctor leaves dict empty if no args are passed', () => {
@@ -348,7 +349,6 @@ describe('Session', () => {
     });
   });
 
-
   it('Safe mode math, math scope train does not throw', () => {
     const x = g.placeholder('x', [2]);
     const w = g.variable('w', NDArray.zeros([1, 2]));
@@ -356,7 +356,7 @@ describe('Session', () => {
     const y = g.reduceSum(g.add(g.matmul(w, x), b));
 
     const safeMode = true;
-    const optimizer = new AdagradOptimizer(0.1, 0.5);
+    const optimizer = new AdagradOptimizer(0.1);
     const math = new NDArrayMathCPU(safeMode);
     const session = new Session(g, math);
     const inputProvider: InputProvider = {
@@ -500,4 +500,127 @@ describe('Session', () => {
           dydw2, new Float32Array([-.4, -.8]), 2e-5);
     });
   });
+
+  it('adam', () => {
+    const x = g.placeholder('x', [2]);
+    const w = g.variable('w', NDArray.zeros([1, 2]));
+    const b = g.variable('b', NDArray.zeros([1]));
+    const y = g.reduceSum(g.add(g.matmul(w, x), b));
+
+    const safeMode = true;
+    const optimizer = new AdamOptimizer(0.1, 0.8, 0.9);
+    const math = new NDArrayMathCPU(safeMode);
+    const session = new Session(g, math);
+    const inputProvider: InputProvider = {
+      getNextCopy() {
+        return Array1D.new([2, 4]);
+      },
+      disposeCopy(math, example) {}
+    };
+
+    math.scope(() => {
+      // w = reduce_sum(w_1*x_1 + w_2*x_2 + b)
+      // new_first_m = [beta1*old_first_m_w1 + (1-beta1)*grad_w1,
+      //                beta1*old_first_m_w2 + (1-beta1)*grad_w2]
+      //             = [.4, .8]
+      // new_second_m = [beta2*old_second_m_w1 + (1-beta2)*grad_w1**2,
+      //                 beta2*old_second_m_w2 + (1-beta2)*grad_w2**2]
+      //              = [.4, 1.6]
+      // m = [new_first_m/(1-acc_beta1)] = [2, 4]
+      // v = [new_second_m/(1-acc_beta2)] = [4, 16]
+      // updates = [m_1/(sqrt(v_1) + eps),
+      //            m_2/(sqrt(v_2) + eps)]
+      //            = [1.0, 1.0]
+      // w = [ w1_old - lr*updates_1, w2_old - lr*updates_2]
+      //            = [-0.1, -0.1]
+      //
+      session.train(y, [{tensor: x, data: inputProvider}], 1, optimizer);
+      const dydw = session.activationArrayMap.get(w).getValues();
+      test_util.expectArraysClose(
+          dydw, new Float32Array([-0.1, -0.1]), 1e-5);
+      // new_first_m = [beta1*old_first_m_w1 + (1-beta1)*grad_w1,
+      //                beta1*old_first_m_w2 + (1-beta1)*grad_w2]
+      //             = [0.8*0.4 + 0.2*2, 0.8*0.8 + 0.2*4]
+      //             = [0.72, 1.44]
+      // new_second_m = [beta2*old_second_m_w1 + (1-beta2)*grad_w1**2,
+      //                 beta2*old_second_m_w2 + (1-beta2)*grad_w2**2]
+      //              = [0.9*0.4 + 0.1*4, 0.9*1.6+0.1*16]
+      //              = [0.76, 3.04]
+      // m = [new_first_m/(1-acc_beta1)] = [2, 4]
+      // v = [new_second_m/(1-acc_beta2)] = [4, 16]
+      // updates = [m_1/sqrt(v_1) + eps,
+      //            m_2/sqrt(v_2) + eps]
+      //            = [1.0, 1.0]
+      // w = [ w1_old - lr*updates_1, w2_old - lr*updates_2]
+      //            = [-0.2, -0.2]
+      session.train(y, [{tensor: x, data: inputProvider}], 1, optimizer);
+      const dydw2 = session.activationArrayMap.get(w).getValues();
+      test_util.expectArraysClose(
+          dydw2, new Float32Array([-.2, -.2]), 2e-5);
+    });
+    });
+
+  it('adamax', () => {
+      const x = g.placeholder('x', [2]);
+      const w = g.variable('w', NDArray.zeros([1, 2]));
+      const b = g.variable('b', NDArray.zeros([1]));
+      const y = g.reduceSum(g.add(g.matmul(w, x), b));
+
+      const safeMode = true;
+      const optimizer = new AdamMaxOptimizer(0.1, 0.8, 0.9);
+      const math = new NDArrayMathCPU(safeMode);
+      const session = new Session(g, math);
+      const inputProvider: InputProvider = {
+          getNextCopy() {
+              return Array1D.new([2, 4]);
+          },
+          disposeCopy(math, example) { }
+      };
+
+      math.scope(() => {
+          // w = reduce_sum(w_1*x_1 + w_2*x_2 + b)
+          // new_first_m = [beta1*old_first_m_w1 + (1-beta1)*grad_w1,
+          //                beta1*old_first_m_w2 + (1-beta1)*grad_w2]
+          //             = [.4, .8]
+          //
+          // ut_0 = beta2*old_weighted_inf_norm = [0, 0]
+          // u1_1 = [(1-beta2)*grad_w1, (1-beta2)*grad_w2] = [.2 .4]
+          // new_weighted_inf_norm = max(ut_0, ut_1 ) = [.2 .4]
+          // 
+          // coefficient = alpha/(1-beta1) = 0.5
+          // updates = coefficient*[new_first_m1/new_weighted_inf_norm1, 
+          //                        new_first_m2/new_weighted_inf_norm2]
+          //         = [1.0, 1.0]
+          // w = [ w1_old - lr*updates_1, w2_old - lr*updates_2]
+          //            = [-0.1, -0.1]
+          //
+          session.train(y, [{ tensor: x, data: inputProvider }], 1, optimizer);
+          const dydw = session.activationArrayMap.get(w).getValues();
+          test_util.expectArraysClose(
+              dydw, new Float32Array([-0.1, -0.1]), 1e-5);
+
+          // w = reduce_sum(w_1*x_1 + w_2*x_2 + b)
+          // new_first_m = [beta1*old_first_m_w1 + (1-beta1)*grad_w1,
+          //                beta1*old_first_m_w2 + (1-beta1)*grad_w2]
+          //             = [0.8*0.4 + 0.2*2, 0.8*0.8 + 0.2*4]
+          //             = [0.72, 1.44]
+          //
+          // ut_0 = beta2*old_weighted_inf_norm = [.18 .36]
+          // u1_1 = [(1-beta2)*grad_w1, (1-beta2)*grad_w2] = [.2 .4]
+          // new_weighted_inf_norm = max(ut_0, ut_1 ) = [.2 .4]
+          // 
+          // coefficient = alpha/(1-beta1) = 0.5
+          // updates = coefficient*[new_first_m1/new_weighted_inf_norm1, 
+          //                        new_first_m2/new_weighted_inf_norm2]
+          //         = [1.8, 1.8]
+          // w = [ w1_old - lr*updates_1, w2_old - lr*updates_2]
+          //            = [-0.28, -0.28]
+
+          session.train(y, [{ tensor: x, data: inputProvider }], 1, optimizer);
+          const dydw2 = session.activationArrayMap.get(w).getValues();
+          test_util.expectArraysClose(
+              dydw2, new Float32Array([-.28, -.28]), 2e-5);
+      });
+  });
+
 });

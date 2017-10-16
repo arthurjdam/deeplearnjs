@@ -22,7 +22,7 @@ import '../demo-header';
 import '../demo-footer';
 
 // tslint:disable-next-line:max-line-length
-import {Array1D, Array3D, DataStats, FeedEntry, Graph, GraphRunner, GraphRunnerEventObserver, InCPUMemoryShuffledInputProviderBuilder, InMemoryDataset, MetricReduction, MomentumOptimizer, SGDOptimizer, RMSPropOptimizer, AdagradOptimizer, NDArray, NDArrayMath, NDArrayMathCPU, NDArrayMathGPU, Optimizer, Scalar, Session, Tensor, util, xhr_dataset, XhrDataset, XhrDatasetConfig} from '../deeplearn';
+import {Array1D, Array3D, DataStats, FeedEntry, Graph, GraphRunner, GraphRunnerEventObserver, InCPUMemoryShuffledInputProviderBuilder, InMemoryDataset, MetricReduction, MomentumOptimizer, SGDOptimizer, RMSPropOptimizer, AdagradOptimizer, AdadeltaOptimizer, AdamOptimizer, NDArray, NDArrayMath, NDArrayMathCPU, NDArrayMathGPU, Optimizer, Scalar, Session, Tensor, util, xhr_dataset, XhrDataset, XhrDatasetConfig} from '../deeplearn';
 import {NDArrayImageVisualizer} from '../ndarray-image-visualizer';
 import {NDArrayLogitsVisualizer} from '../ndarray-logits-visualizer';
 import {PolymerElement, PolymerHTMLElement} from '../polymer-spec';
@@ -80,6 +80,10 @@ export let ModelBuilderPolymer: new () => PolymerHTMLElement = PolymerElement({
     needMomentum: Boolean,
     gamma: Number,
     needGamma: Boolean,
+    beta1: Number,
+    needBeta1: Boolean,
+    beta2: Number,
+    needBeta2: Boolean,
     batchSize: Number,
     selectedModelName: String,
     selectedNormalizationOption:
@@ -131,11 +135,15 @@ export class ModelBuilder extends ModelBuilderPolymer {
   private dataSet: InMemoryDataset;
   private xhrDatasetConfigs: {[datasetName: string]: XhrDatasetConfig};
   private datasetStats: DataStats[];
-  private learingRate: number;
+  private learningRate: number;
   private momentum: number;
   private needMomentum: boolean;
   private gamma: number;
   private needGamma: boolean;
+  private beta1: number;
+  private needBeta1: boolean;
+  private beta2: number;
+  private needBeta2: boolean;
   private batchSize: number;
 
   // Stats.
@@ -198,7 +206,7 @@ export class ModelBuilder extends ModelBuilderPolymer {
           totalTimeSec.toFixed(1),
     };
     this.graphRunner = new GraphRunner(this.math, this.session, eventObserver);
-    this.optimizer = new MomentumOptimizer(this.learingRate, this.momentum);
+    this.optimizer = new MomentumOptimizer(this.learningRate, this.momentum);
 
     // Set up datasets.
     this.populateDatasets();
@@ -244,10 +252,21 @@ export class ModelBuilder extends ModelBuilderPolymer {
     this.needMomentum = true;
     this.gamma = 0.1;
     this.needGamma = false;
+    this.beta1 = 0.9;
+    this.needBeta1 = false;
+    this.beta2 = 0.999;
+    this.needBeta2 = false;
     this.batchSize = 64;
     // Default optimizer is momentum
     this.selectedOptimizerName = "momentum";
-    this.optimizerNames = ["sgd", "momentum", "rmsprop", "adagrad"];
+    this.optimizerNames = [
+      "sgd", 
+      "momentum", 
+      "rmsprop", 
+      "adagrad", 
+      "adadelta", 
+      "adam"
+    ];
 
     this.applicationState = ApplicationState.IDLE;
     this.loadedWeights = null;
@@ -301,8 +320,6 @@ export class ModelBuilder extends ModelBuilderPolymer {
     return applicationState === ApplicationState.IDLE;
   }
 
-
-
   private getTestData(): NDArray[][] {
     const data = this.dataSet.getData();
     if (data == null) {
@@ -349,6 +366,8 @@ export class ModelBuilder extends ModelBuilderPolymer {
   private resetHyperParamRequirements() {
     this.needMomentum = false;
     this.needGamma = false;
+    this.needBeta1 = false;
+    this.needBeta2 = false;
   }
 
   /**
@@ -371,7 +390,15 @@ export class ModelBuilder extends ModelBuilderPolymer {
         break;
       }
       case "adagrad": {
-        this.needMomentum = true;
+        break;
+      }
+      case "adadelta": {
+        this.needGamma = true;
+        break;
+      }
+      case "adam": {
+        this.needBeta1 = true;
+        this.needBeta2 = true;
         break;
       }
       default: {
@@ -392,7 +419,13 @@ export class ModelBuilder extends ModelBuilderPolymer {
         return new RMSPropOptimizer(+this.learningRate, +this.gamma);
       }
       case 'adagrad': {
-        return new AdagradOptimizer(+this.learningRate, +this.momentum);
+        return new AdagradOptimizer(+this.learningRate);
+      }
+      case 'adadelta': {
+        return new AdadeltaOptimizer(+this.learningRate, +this.gamma);
+      }
+      case 'adam': {
+        return new AdamOptimizer(+this.learningRate, +this.beta1, +this.beta2);
       }
       default: {
         throw new Error(`Unknown optimizer "${this.selectedOptimizerName}"`);

@@ -147,6 +147,15 @@ export class GPGPUContext {
             gpgpu_util.downloadMatrixFromOutputTexture(this.gl, rows, columns));
   }
 
+  public downloadMatrixFromRGBAColorTexture(
+      texture: WebGLTexture, rows: number, columns: number,
+      channels: number): Float32Array {
+    return this.downloadMatrixDriver(
+        texture,
+        () => gpgpu_util.downloadMatrixFromRGBAColorTexture(
+            this.gl, rows, columns, channels));
+  }
+
   public downloadMatrixFromPackedTexture(
       texture: WebGLTexture, rows: number, columns: number): Float32Array {
     return this.downloadMatrixDriver(
@@ -198,6 +207,13 @@ export class GPGPUContext {
         this.gl, program, uniformName);
   }
 
+  public getAttributeLocation(program: WebGLProgram, attribute: string):
+      number {
+    this.throwIfDisposed();
+    return webgl_util.callAndCheck(
+        this.gl, () => this.gl.getAttribLocation(program, attribute));
+  }
+
   public getUniformLocationNoThrow(program: WebGLProgram, uniformName: string):
       WebGLUniformLocation {
     this.throwIfDisposed();
@@ -247,12 +263,12 @@ export class GPGPUContext {
     webgl_util.validateFramebuffer(this.gl);
   }
 
-  public executeProgram() {
+  public executeProgram(attribLocations?: {[name: string]: number}) {
     this.throwIfDisposed();
     this.throwIfNoProgram();
     const gl = this.gl;
     gpgpu_util.bindVertexProgramAttributeStreams(
-        gl, this.program, this.vertexBuffer);
+        gl, this.program, this.vertexBuffer, attribLocations);
     if (this.autoDebugValidate) {
       this.debugValidate();
     }
@@ -363,7 +379,6 @@ export class GPGPUContext {
       util.repeatedTry(queryGPU).then(getTimeElapsed).catch(resolveWithWarning);
     });
   }
-
 
   private downloadMatrixDriver(
       texture: WebGLTexture,

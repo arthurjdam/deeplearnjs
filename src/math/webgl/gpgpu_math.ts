@@ -15,12 +15,15 @@
  * =============================================================================
  */
 
+import {ENV} from '../../environment';
 import * as util from '../../util';
 import {NDArray} from '../ndarray';
 
 import {GPGPUContext} from './gpgpu_context';
 import * as shader_compiler from './shader_compiler';
 import {ShapeInfo} from './shader_compiler';
+
+const ATTRIBUTE_NAMES = ['uv', 'clipSpacePos'];
 
 export interface GPGPUProgram {
   variableNames: string[];
@@ -34,10 +37,17 @@ export interface GPGPUBinary {
   webGLProgram: WebGLProgram;
   program: GPGPUProgram;
   uniformLocations: {[name: string]: WebGLUniformLocation};
+  attributeLocations: {[name: string]: number};
   gpgpu: GPGPUContext;
   source: string;
   inShapeInfos: ShapeInfo[];
   outShapeInfo: ShapeInfo;
+}
+
+const NAN_UNIFORM_NAME = 'NaN';
+
+function shouldUploadNaNUniform(): boolean {
+  return !ENV.get('WEBGL_FLOAT_TEXTURE_ENABLED');
 }
 
 export function compileProgram<T extends NDArray, K extends NDArray>(
@@ -47,14 +57,16 @@ export function compileProgram<T extends NDArray, K extends NDArray>(
   const inputInfos = inputs.map((input, i) => {
     const shapeInfo = {
       logicalShape: input.shape,
-      texShape: input.getTextureShapeRC()
+      texShape: input.getTextureShapeRC(),
+      textureType: input.getData().textureType
     };
     return {name: program.variableNames[i], shapeInfo};
   });
   const inShapeInfos = inputInfos.map(x => x.shapeInfo);
   const outShapeInfo = {
     logicalShape: output.shape,
-    texShape: output.getTextureShapeRC()
+    texShape: output.getTextureShapeRC(),
+    textureType: output.getData().textureType
   };
   const source = shader_compiler.makeShader(
       inputInfos, outShapeInfo, userCode,
@@ -68,12 +80,23 @@ export function compileProgram<T extends NDArray, K extends NDArray>(
     uniformLocations[uniformName] =
         gpgpu.getUniformLocation(webGLProgram, uniformName);
   }
+  const attributeLocations: {[name: string]: number} = {};
+  ATTRIBUTE_NAMES.forEach(attribute => {
+    attributeLocations[attribute] =
+        gpgpu.getAttributeLocation(webGLProgram, attribute);
+  });
+
+  if (shouldUploadNaNUniform()) {
+    uniformLocations[NAN_UNIFORM_NAME] =
+        gpgpu.getUniformLocation(webGLProgram, NAN_UNIFORM_NAME);
+  }
 
   return {
     program,
     source,
     webGLProgram,
     uniformLocations,
+    attributeLocations,
     gpgpu,
     inShapeInfos,
     outShapeInfo
@@ -124,10 +147,15 @@ export function runProgram<T extends NDArray, K extends NDArray>(
     const variableUniformLocation = binary.uniformLocations[variableName];
     gpgpu.setInputMatrixTexture(tex, variableUniformLocation, i);
   });
+
+  if (shouldUploadNaNUniform()) {
+    gpgpu.gl.uniform1f(binary.uniformLocations[NAN_UNIFORM_NAME], NaN);
+  }
+
   if (customSetup != null) {
     customSetup(gpgpu, binary.webGLProgram);
   }
-  gpgpu.executeProgram();
+  gpgpu.executeProgram(binary.attributeLocations);
 }
 
 export function makeShaderKey(
