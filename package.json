@@ -45,6 +45,7 @@
     "dev-node": "tsc -p . -w & nodemon --delay 10ms dist/index.js"
   },
   "dependencies": {
+    "nooocl": "^0.12.5",
     "seedrandom": "~2.4.3"
   }
 }
