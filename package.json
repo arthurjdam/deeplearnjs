@@ -25,6 +25,7 @@
     "karma-firefox-launcher": "~1.0.1",
     "karma-jasmine": "~1.1.0",
     "karma-typescript": "~3.0.4",
+    "nodemon": "^1.12.1",
     "opn": "~5.1.0",
     "polymer-bundler": "~3.0.1",
     "tone-piano": "0.0.5",
@@ -40,7 +41,8 @@
     "prep": "npm install && bower install && mkdirp dist",
     "build": "tsc",
     "test": "karma start",
-    "lint": "tslint -p . --type-check -t verbose"
+    "lint": "tslint -p . --type-check -t verbose",
+    "dev-node": "tsc -p . -w & nodemon dist/index.js"
   },
   "dependencies": {
     "seedrandom": "~2.4.3"
