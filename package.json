@@ -42,7 +42,7 @@
     "build": "tsc",
     "test": "karma start",
     "lint": "tslint -p . --type-check -t verbose",
-    "dev-node": "tsc -p . -w & nodemon dist/index.js"
+    "dev-node": "tsc -p . -w & nodemon --delay 10ms dist/index.js"
   },
   "dependencies": {
     "seedrandom": "~2.4.3"
