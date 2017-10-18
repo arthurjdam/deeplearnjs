@@ -17,5 +17,5 @@
         "noFallthroughCasesInSwitch": true,
         "allowUnreachableCode": false
     },
-    "files": [ "index.ts" ]
+    "files": [ "index.ts", "src/math/opencl/nooocl.d.ts" ]
 }

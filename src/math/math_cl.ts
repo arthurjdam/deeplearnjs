@@ -1,11 +1,14 @@
 import {ConvInfo} from './conv_util';
-import {MatrixOrientation, NDArrayMath, SumTypes, SumTypesMap} from './math';
-import * as ndarray from './ndarray';
+import {MatrixOrientation, NDArrayMath, SumTypes} from './math';
 import {Array1D, Array2D, Array3D, Array4D, DataTypes, NDArray, Scalar} from './ndarray';
+import * as MulMat from './opencl/mulmat_cl';
+import { CLHost, CLContext, CLBuffer, CLCommandQueue, NDRange, CLError } from 'nooocl';
+
 
 export class NDArrayMathCL extends NDArrayMath {
     constructor(safeMode = false) {
         super(safeMode);
+        console.log(MulMat);
     }
 
     protected cloneInternal<G extends keyof DataTypes, T extends NDArray<G>>(
@@ -19,8 +22,7 @@ export class NDArrayMathCL extends NDArrayMath {
     }
 
     protected slice2DInternal(input: Array2D, begin: [number, number], size: [
-        number, number
-        ]): Array2D {
+        number, number]): Array2D {
         throw new Error('Not yet implemented!');
     }
 
@@ -72,6 +74,7 @@ export class NDArrayMathCL extends NDArrayMath {
     protected matMulInternal(
         a: Array2D, b: Array2D, aOrientation: MatrixOrientation,
         bOrientation: MatrixOrientation): Array2D {
+        // console.log('matmul internal!');
         throw new Error('Not yet implemented!');
     }
 
