@@ -1,3 +1,5 @@
+// Definitions by: Arthur Dam <https://github.com/arthurjdam>
+
 declare module 'nooocl' {
     enum CLDefinition {
         CL_SUCCESS,
@@ -381,30 +383,110 @@ declare module 'nooocl' {
         CL_DEVICE_LOCAL_MEM_BANKS_AMD
     }
 
-    export class CL11 extends CLHost {
-        version: number;
-        libName: string;
+    enum types {
+        ImageFormat,
+        ImageFormatArray,
+        ImageFormatRef,
+        ImageDesc,
+        ImageDescRef,
+        BufferRegion,
+        Bool,
+        SizeTArray,
+        StringArray,
+        ErrorCode,
+        ErrorCodeRet,
+        Bitfield,
+        DeviceType,
+        PlatformInfo,
+        DeviceInfo,
+        DeviceFpConfig,
+        DeviceMemCacheType,
+        DeviceLocalMemType,
+        DeviceExecCapabilities,
+        CommandQueueProperties,
+        DevicePartitionProperties,
+        DeviceAffinityDomain,
+        ContextProperties,
+        ContextInfo,
+        CommandQueueInfo,
+        ChannelOrder,
+        ChannelType,
+        MemFlags,
+        MemObjectType,
+        MemInfo,
+        MemMigrationFlags,
+        ImageInfo,
+        BufferCreateType,
+        AddressingMode,
+        FilterMode,
+        SamplerInfo,
+        MapFlags,
+        ProgramInfo,
+        ProgramBuildInfo,
+        ProgramBinaryTyp,
+        BuildStatus,
+        KernelInfo,
+        KernelArgInfo,
+        KernelArgAddressQualifier,
+        KernelArgAccessQualifier,
+        KernelArgTypeQualifier,
+        KernelWorkGroupInfo,
+        EventInfo,
+        CommandType,
+        CommandExecutionStatus,
+        ProfilingInfo,
+        Mem,
+        MemArray,
+        PlatformId,
+        PlatformIdArray,
+        DeviceId,
+        DeviceIdArray,
+        CommandQueue,
+        Context,
+        Sampler,
+        Program,
+        ProgramArray,
+        Kernel,
+        KernelArray,
+        Event,
+        EventRef,
+        EventArray,
+        Binary,
+        Binaries,
+        CreateContextNotify,
+        BuildProgramNotify,
+        EnqueueNativeKernelUserFunc,
+        SetEventCallbackCallback,
+        MemObjectDestructorCallback
     }
 
-    export class CL12 extends CLHost {
-        version: number;
-        libName: string;
+    class CLImports {
+
     }
 
+    export class CL11 extends CLHost { }
+    export class CL12 extends CL11 { }
     export class CLHost {
         constructor(version:number);
+        version: number;
+        libName: string;
+        cl: {
+            defs:Array<CLDefinition>;
+        };
+        types:Array<types>;
         getPlatforms():Array<CLPlatform>;
+        imports:CLImports;
         static createV11():CL11;
         static createV12():CL12;
         static supportedVersions:{cl11:number; cl12:number};
     }
 
-    export class CLPlatform {
-        name():string;
-        vendor():string;
-        clVersion():string;
-        profile():string;
-        extensions():string;
+    export interface CLPlatform extends CLWrapper {
+        name:string;
+        vendor:string;
+        clVersion:string;
+        profile:string;
+        extensions:Array<string>;
 
         getDevices(deviceType:string):Array<CLDevice>;
         allDevices():Array<CLDevice>;
@@ -413,33 +495,115 @@ declare module 'nooocl' {
         accelDevices():Array<CLDevice>;
     }
 
-    export class CLDevice {
+    export interface CLDevice extends CLWrapper {
+        handle:Buffer;
+        deviceType:number;
+        platform:CLPlatform;
+        vendorID:number;
+        maxComputeUnits:number;
+        maxWorkItemDimensions:number;
+        maxWorkItemSizes:number;
+        maxWorkgroupSize:number;
+        maxClockFrequency:number;
+        addressBits:number;
+        maxMemAllocSize:number;
+        imageSupport:boolean;
+        maxReadImageArgs:number;
+        maxWriteImageArgs:number;
+        image2DMaxWidth:number;
+        image2DMaxHeight:number;
+        image3DMaxWidth:number;
+        image3DMaxHeight:number;
+        image3DMaxDepth:number;
+        maxSamplers:number;
+        maxParameterSize:number;
+        memBaseAddrAlign:number;
+        minDataTypeAlignSize:number;
+        singleFpConfig:boolean;
+        doubleFpConfig:boolean;
+        globalMemCacheType:CLDefinition;
+        globalMemCacheLineSize:number;
+        globalMemCacheSize:number;
+        globalMemSize:number;
+        maxConstBufferSize:number;
+        maxConstArgs:number;
+        localMemType:number;
+        localMemSize:number;
+        errorCorrectionSupport:boolean;
+        hostUnifiedMemory:boolean;
+        profilingTimerResolution:number;
+        littleEndian:boolean;
+        available:boolean;
+        compilerAvailable:boolean;
 
+        deviceExecCapabilities:Array<CLDefinition>;
+        commandQueueProperties:Array<CLDefinition>;
+        name:string;
+        vendor:string;
+        driverVersion:number;
+        profile:CLDefinition;
+        clVersion:string;
+        clCVersion:string;
+        numVersion:number;
+        extensions:Array<CLDefinition>;
     }
 
-    export class CLContext {
+    class CLContext1 extends CLContext { }
+    class CLContext2 extends CLContext { }
+    export class CLContext extends CLWrapper {
         constructor(device:CLDevice);
+        constructor(platform:CLPlatform, deviceType:string, properties:any);
         createProgram(source:string):CLProgram;
+        numDevices:number;
+        devices:Array<CLDevice>;
+        getSupportedImageFormats(flags:Array<any>, type:string):Array<any>;
     }
 
+    class CLBuffer1 extends CLBuffer { }
+    class CLBuffer2 extends CLBuffer { }
     export class CLBuffer {
         constructor(context:CLContext, state:CLDefinition, bytes:number);
+        static wrap(context:CLContext, hostPtr:number|string):CLBuffer;
+        static wrapReadOnly(context:CLContext, hostPtr:number|string):CLBuffer;
+        static wrapWriteOnly(context:CLContext, hostPtr:number|string):CLBuffer;
+        offset:number;
+        superBuffer:CLBuffer;
+        createSubBuffer(flags:Array<CLDefinition>, origin:CLBuffer, size:number):CLBuffer; //not sure about the 'origin' arg...
     }
 
-    export class CLCommandQueue {
+    class CLCommandQueue1 extends CLCommandQueue { }
+    class CLCommandQueue2 extends CLCommandQueue { }
+    export class CLCommandQueue extends CLWrapper {
         promise:Promise<void>;
-        constructor(queue:CLCommandQueue, device: CLDevice);
-        enqueueWriteBuffer(clBuffer:CLBuffer, start:number, end: number, buffer:Buffer):CLCommandQueue;
+        constructor(queue?:CLCommandQueue, device?: CLDevice);
+        context:CLContext;
+        device:CLDevice;
+        properties:any; //to-do
+        isOutOfOrder:boolean;
+        isProfilingEnabled():boolean;
+        waitableVersion:any; //to-do
+        notWaitableVersion:any; //to-do
+
+        waitable(value?:boolean):CLCommandQueue;
+        flush():void;
+        enqueueWaitForEvents(events:Array<CLEvent>):void;
+        enqueueTask(kernel:CLKernel, events:Array<CLEvent>):CLEvent|void;
+        enqueueMarker():CLEvent;
+        enqueueBarrier():void;
+        enqueueNDRangeKernel(kernel:CLKernel, globalRange:void, localRange:void, offset:void, events?:Array<CLEvent>):CLEvent|void;
+        enqueueReadBuffer(buffer:CLBuffer, offset:number, size:number, ptr?:number|string, events?:Array<CLEvent>):CLEvent|void;
+        enqueueWriteBuffer(buffer:CLBuffer, offset:number, size:number, ptr?:number|string, events?:Array<CLEvent>):CLEvent|void;
+        enqueueMapBuffer(buffer:CLBuffer, flags:Array<any>, offset:number, size:number, out:number|string, events:Array<CLEvent>):CLEvent|void;
+        //to-do
         enqueueNDRangeKernel(kernel:CLKernel, globalSize:number, localSize:number):CLCommandQueue;
-        waitable():CLCommandQueue;
     }
 
     export class NDRange {
         constructor(xSize:number, ySize?:number, zSize?:number);
-        dimensions():number;
-        xSize():number;
-        ySize():number;
-        zSize():number;
+        dimensions:number;
+        xSize:number;
+        ySize:number;
+        zSize:number;
         static nullRange():NDRange;
     }
 
@@ -447,36 +611,95 @@ declare module 'nooocl' {
         name:string;
         message:string;
         code:string;
-        _type:string;
     }
 
-    export class CLProgram {
-        getBuildStatus(device:CLDevice):void; // to-do
-        getBuildLog(device:CLDevice):void; // to-do
+    export class CLEventProfilingInfo extends CLWrapper {
+        constructor(cl:CL11|CL12, handle:Buffer);
+        profilingCommandQueued:number;
+        profilingCommandSubmit:number;
+        profilingCommandStart:number;
+        profilingCommandEnd:number;
+    }
+
+    export class CLEvent extends CLWrapper {
+        constructor(cl:CL11|CL12, handle:Buffer);
+        profilingInfo:CLEventProfilingInfo;
+        commandQueue:CLCommandQueue;
+        context:CLContext;
+        commandType:CLDefinition;
+        commandExecutionStatus:CLDefinition;
+        promise:Promise<void>;
+    }
+
+    export class CLProgram1 extends CLProgram { }
+    export class CLProgram2 extends CLProgram { }
+    export class CLProgram extends CLWrapper {
+        constructor();
+
+        numDevices:number;
+        devices:Array<CLDevice>;
+        sourceCode:string;
+
+        build(options:any, devices:CLDevice|Array<CLDevice>):Promise<void>;
         createKernel(name:string):CLKernel;
+        createAllKernels():Array<CLKernel>;
+        getBuildStatus(device:CLDevice):string;
+        getBuildOptions(device:CLDevice):string;
+        getBuildLog(device:CLDevice):string;
+        getBuildLogs():string;
+        getBinaries():void; //to-do
     }
 
-    export class CLKernel1 extends CLKernel {
+    export class CLKernel1 extends CLKernel { }
+    export class CLKernel2 extends CLKernel { }
+    export class CLKernel extends CLWrapper {
         constructor(program:CLProgram, name:string);
-    }
-
-    export class CLKernel2 extends CLKernel {
-        constructor(program:CLProgram, name:string);
-    }
-
-    export class CLKernel {
-        _classInfoFunction():string;
-        name():string;
-        context():CLContext;
-        // numArgs: {
-        //     return this._getInfo("uint", this.cl.defs.CL_KERNEL_NUM_ARGS);
+        name:string;
+        context:CLContext;
+        numArgs:number;
         static getWorkgroupSize(device:CLDevice):void;
         getCompileWorkGroupSize(device:CLDevice):void;
         getLocalMemSize(device:CLDevice):void;
         getPreferredWorkGroupSizeMultiple(device:CLDevice):void;
-        getPrivateMemSize(device:CLDevice):void; //return-type
+        getPrivateMemSize(device:CLDevice):number;
         setArg(index:Number, buffer:CLBuffer, type?:string):void;
+        setArgs(buffers:Array<CLBuffer>):void;
         bind(queue:CLCommandQueue, globalRange:number, localRange:number, offset:number):() => void;
+    }
 
+    export class CLMemory extends CLWrapper {
+        constructor(context:CLContext, handle:Buffer);
+        mapCount:number;
+        hostPtr:string|number;
+        size:number;
+        memFlags:Array<any>;
+        setDestructorCallback(fn:() => void):void;
+        getGLObjectInfo():{glObjectType: string, glObjectName:string};
+    }
+
+    export class CLSampler extends CLWrapper {
+        normalizedCoords:boolean;
+        addressingMode:CLDefinition;
+        filterMode:CLDefinition;
+    }
+
+    export class CLUserEvent extends CLEvent {
+        constructor(context:CLContext);
+        setStatus(status:string):void;
+    }
+
+    export interface clUtils {
+        toPtr(ptr:Buffer|{buffer:Buffer}, name:string):Buffer;
+        toHandle(obj:Buffer|{handle:Buffer}, name:string):Buffer;
+        isHandle(obj:any):boolean;
+        createDeviceArray(devices:Array<CLDevice>|CLDevice):Array<CLDevice>;
+        asImageFormat(format:any):any;
+        createPropArray(cl:CL11|CL12, properties:Array<any>, platform:CLPlatform):Array<any>;
+        keepAlive(promise:Promise<void>):void;
+    }
+
+    export class CLWrapper /* extends fastcall.Disposable */ {
+        version:number;
+        release():void;
     }
 }
