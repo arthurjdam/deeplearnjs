@@ -505,7 +505,7 @@ declare module 'nooocl' {
     }
 
     class CLImports {
-        /* omitted for clarify, all these are private use only */
+        /* omitted for clarity, all these are private use only */
     }
 
     export class CL11 extends CLHost { }
@@ -619,7 +619,7 @@ declare module 'nooocl' {
     class CLCommandQueue2 extends CLCommandQueue { }
     export class CLCommandQueue extends CLWrapper {
         promise:Promise<void>;
-        constructor(queue?:CLCommandQueue, device?: CLDevice);
+        constructor(queue?:CLCommandQueue|CLContext, device?: CLDevice);
         context:CLContext;
         device:CLDevice;
         properties:any; //to-do
@@ -748,3 +748,5 @@ declare module 'nooocl' {
         release():void;
     }
 }
+
+export declare const nooocl:any;

@@ -2,13 +2,54 @@ import {ConvInfo} from './conv_util';
 import {MatrixOrientation, NDArrayMath, SumTypes} from './math';
 import {Array1D, Array2D, Array3D, Array4D, DataTypes, NDArray, Scalar} from './ndarray';
 import * as MulMat from './opencl/mulmat_cl';
-import { CLHost, CLContext, CLBuffer, CLCommandQueue, NDRange, CLError } from 'nooocl';
-
+import { nooocl, CLHost, CL12, CLDevice, CLContext, CLProgram, CLBuffer, CLKernel, CLCommandQueue, NDRange, CLError } from 'nooocl';
+import * as cl_util from './opencl/cl_util';
 
 export class NDArrayMathCL extends NDArrayMath {
+    private _host:CL12;
+    private _device:CLDevice;
+    private _context:CLContext;
+    private _queue:CLCommandQueue;
+
     constructor(safeMode = false) {
         super(safeMode);
-        console.log(MulMat);
+
+        this._host = CLHost.createV12();
+    }
+
+    getHost():CL12 {
+        return this._host;
+    }
+
+    getDevices(type:cl_util.DeviceType = cl_util.DeviceType.all):Array<CLDevice> {
+        return cl_util.getDevices(this._host, type);
+    }
+
+    setDevice(device:CLDevice):void {
+        this._device = device;
+    }
+
+    start(program:CLProgram):Promise<string|CLError> {
+
+        return new Promise((res, rej) =>
+        {
+            this._context = new CLContext(this._device);
+            this._queue = new CLCommandQueue(this._context, this._device);
+
+            nooocl.scope(() =>
+                program.build('-cl-fast-relaxed-math').then(() =>
+                {
+                    const buildStatus = program.getBuildStatus(this._device);
+                    const buildLog = program.getBuildLog(this._device);
+
+                    if (buildStatus < 0) {
+                        rej(new CLError(buildStatus, 'Build failed.'));
+                    } else {
+                        res(buildLog);
+                    }
+                })
+            );
+        });
     }
 
     protected cloneInternal<G extends keyof DataTypes, T extends NDArray<G>>(
