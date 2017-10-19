@@ -1,6 +1,6 @@
 {
   "name": "deeplearn",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Hardware-accelerated JavaScript library for machine intelligence",
   "private": false,
   "main": "dist/src/index.js",
@@ -42,7 +42,8 @@
     "build": "tsc",
     "test": "karma start",
     "lint": "tslint -p . --type-check -t verbose",
-    "dev-node": "tsc -p . -w & nodemon --delay 10ms dist/index.js"
+    "dev-node": "tsc -p . -w & nodemon --delay 10ms dist/index.js",
+    "make-version": "./scripts/make-version"
   },
   "dependencies": {
     "nooocl": "^0.12.5",
