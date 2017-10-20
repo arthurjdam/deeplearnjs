@@ -2,7 +2,7 @@ declare module 'fastcall' {
     export module ffi {
         export class Library {
             constructor(path:string, methods:any);
-            clGetPlatformIDs(a:number, b:string, c:string):void;
+            [index: string]:(a:any, b:any, c:any, d?:any, e?:any) => any;
         }
     }
 
@@ -35,5 +35,9 @@ declare module 'fastcall' {
 
     export class Disposable {
 
+    }
+
+    export class PlatformIDArray {
+        constructor(size:number);
     }
 }
