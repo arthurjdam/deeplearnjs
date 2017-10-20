@@ -46,7 +46,7 @@
     "make-version": "./scripts/make-version"
   },
   "dependencies": {
-    "nooocl": "^0.12.5",
+    "fastcall": "^0.2.4",
     "seedrandom": "~2.4.3"
   }
 }
