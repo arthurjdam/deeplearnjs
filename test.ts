@@ -1,6 +1,10 @@
 import CL_Platform from './src/opencl/cl_platform';
+// import CL_Program from './src/opencl/cl_program';
+import CL_Context from './src/opencl/cl_context';
 
 CL_Platform.instance().construct();
+let a = new CL_Context([CL_Platform.instance().getDevices()[0]]);
+
 
 /*
 import * as fastcall from 'fastcall';

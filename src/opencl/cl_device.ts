@@ -10,7 +10,7 @@ export default class CL_Device {
     private driver_version:string;
     private device_extensions:ReadonlyArray<string>;
 
-    constructor(private id:Buffer) {
+    constructor(public id:Buffer) {
         this.name = this.getDeviceInfo(def.cl_device_info.CL_DEVICE_NAME);
         this.vendor = this.getDeviceInfo(def.cl_device_info.CL_DEVICE_VENDOR);
         this.driver_version = this.getDeviceInfo(def.cl_device_info.CL_DRIVER_VERSION);

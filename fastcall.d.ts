@@ -4,12 +4,20 @@ declare module 'fastcall' {
             constructor(path:string, methods:any);
             [index: string]:(a:any, b:any, c:any, d?:any, e?:any) => any;
         }
+        export function Function(type:string, args:Array<any>):string;
+    }
+
+    class Type {
+        alignment:number;
+        name:string;
+        size:number;
+        deref():number;
     }
 
     export module ref {
-        export function alloc(type:string):any;
-        export function refType(type:string):string;
-        export function coerceType(type:string):string;
+        export function alloc(type:string):Type;
+        export function refType(type:string):Type;
+        export function coerceType(type:string):Type;
         export const types: {
             int:string;
             uint:string;
