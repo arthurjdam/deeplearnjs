@@ -2,7 +2,7 @@ declare module 'fastcall' {
     export module ffi {
         export class Library {
             constructor(path:string, methods:any);
-            [index: string]:(a:any, b:any, c:any, d?:any, e?:any) => any;
+            [index: string]:(a:any, b:any, c:any, d?:any, e?:any, f?:any) => any;
         }
         export function Function(type:string, args:Array<any>):string;
     }

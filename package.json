@@ -46,6 +46,7 @@
     "make-version": "./scripts/make-version"
   },
   "dependencies": {
+    "@types/es6-promise": "0.0.33",
     "fastcall": "^0.2.4",
     "seedrandom": "~2.4.3"
   }

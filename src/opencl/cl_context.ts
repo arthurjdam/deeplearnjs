@@ -5,7 +5,7 @@ import { cl_errors } from './definitions';
 
 export default class CL_Context {
     private _devices;
-    private _handle;
+    private _handle:Buffer;
 
     constructor(devices: Array<CL_Device>) {
         this._devices = new (types.DeviceIdArray)(devices.length);
@@ -25,6 +25,7 @@ export default class CL_Context {
         if (obj && obj.handle instanceof Buffer) {
             return obj.handle;
         }
+
         throw new TypeError(`Object ${(name || 'obj')} is not an OpenCL object.`);
     }
 }
