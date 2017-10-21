@@ -15,6 +15,7 @@ export enum Method {
     clGetDeviceIDs = 'clGetDeviceIDs',
     clGetDeviceInfo = 'clGetDeviceInfo',
     clCreateContext = 'clCreateContext',
+    clCreateBuffer = 'clCreateBuffer'
 }
 
 const framework = {
@@ -35,7 +36,10 @@ export const types = {
     ContextProperties: new fastcall.ArrayType("size_t"),
     CreateContextNotify: ffi.Function("void", [ "pointer", "pointer" ]),
     ErrorCodeRet: ref.refType("int"),
-    ErrorCode: ref.types.int
+    ErrorCode: ref.types.int,
+    Mem: ref.refType("void"),
+    MemFlags: ref.types.uint64,
+    Context: ref.refType("void"),
 };
 
 
@@ -87,7 +91,15 @@ export default class CL_Platform {
                     ref.refType(types.CreateContextNotify),
                     types.Pointer,
                     types.ErrorCodeRet]],
-        });
+            [Method.clCreateBuffer]: [
+                types.Mem, [
+                    types.Context,
+                    types.MemFlags,
+                    'size_t',
+                    types.Pointer,
+                    ref.refType('int')]],
+
+    });
 
         this._platform = this._getPlatforms()[0];
         this._devices = this._getDevices(def.cl_device_type.CL_DEVICE_TYPE_ALL);
