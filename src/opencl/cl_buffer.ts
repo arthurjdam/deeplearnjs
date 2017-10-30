@@ -5,10 +5,13 @@ import { Method } from './cl_platform';
 
 export default class CL_Buffer {
     private _handle;
+    private _context;
 
     constructor(flags:def.cl_mem_flags, dataSize:number, hostPtr = null) {
         let err;
 
-        this._handle = CL_Platform.instance().library[Method.clCreateBuffer](CL_Util.toHandle(CL_Platform.instance().library), flags, dataSize, CL_Util.toPtr(hostPtr, "hostPtr"), err);
+        this._context = CL_Platform.instance().getContext();
+
+        this._handle = CL_Platform.instance().library[Method.clCreateBuffer](CL_Util.toHandle(CL_Platform.instance().library), flags, dataSize, CL_Util.toPtr(hostPtr, 'hostPtr'), err);
     }
 }
