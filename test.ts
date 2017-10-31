@@ -1,16 +1,15 @@
-import CL_Platform from './src/opencl/cl_platform';
-import { Method, types } from './src/opencl/cl_platform';
+import CL_Platform, {Method, types} from './src/opencl/cl_platform';
 // import CL_Context from './src/opencl/cl_context';
 // import CL_Command_Queue from './src/opencl/cl_command_queue';
 // import CL_Buffer from './src/opencl/cl_buffer';
 import * as fastcall from 'fastcall';
-import { ref } from 'fastcall';
+import {ref} from 'fastcall';
 import * as def from './src/opencl/definitions';
 
 const vecAdd = `#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 __kernel void square(
-   __global float* input,
-   __global float* output,
+   __global double *input,
+   __global double *output,
    const unsigned int count)
 {
    int i = get_global_id(0);
@@ -18,7 +17,7 @@ __kernel void square(
        output[i] = input[i] * input[i];
 }`;
 
-const count = 1024;
+const count = 1026;
 
 let global = ref.alloc('size_t');
 let local = ref.alloc('size_t');
@@ -34,24 +33,26 @@ let kernel = ref.alloc(types.Kernel);
 let input = ref.alloc(types.Mem);
 let output = ref.alloc(types.Mem);
 
-const _data:Array<number> = new Array(count).fill(0);
-for(let i = 0; i < count; ++i)
-{
+const _data: Array<number> = new Array(count).fill(0);
+for (let i = 0; i < count; ++i) {
     _data[i] = Math.random();
 }
-let data = new Buffer(count * ref.types.float.size);
-for(let i = 0; i < count; ++i)
-{
-    const offset = i * ref.types.float.size;
-    ref.types.float.set(data, offset, _data[i])
+let data = new Buffer(count * ref.types.double.size);
+for (let i = 0; i < count; ++i) {
+    const offset = i * ref.types.double.size;
+    ref.types.double.set(data, offset, _data[i])
 }
+
+console.log(_data[1], ref.types.double.get(data, 1 * ref.types.double.size));
+console.log(_data[1023], ref.types.double.get(data, 1023 * ref.types.double.size));
 
 let platform = CL_Platform.instance();
 platform.construct();
 let cl = platform.library;
 
 let ids = new (types.DeviceIdArray)(1);
-err = cl[Method.clGetDeviceIDs](null, def.cl_device_type.CL_DEVICE_TYPE_GPU, 2, ids, null);
+// err = cl[Method.clGetDeviceIDs](null, def.cl_device_type.CL_DEVICE_TYPE_GPU, 1, ids, null);
+err = cl[Method.clGetDeviceIDs](null, def.cl_device_type.CL_DEVICE_TYPE_CPU, 1, ids, null);
 
 if (err != def.cl_errors.CL_SUCCESS) {
     console.error('Error: Failed to create a device group!');
@@ -62,8 +63,7 @@ device_id = ids.get(1);
 err = ref.alloc(types.ErrorCode);
 context = cl[Method.clCreateContext](null, 1, ids, null, null, err);
 
-if (!context)
-{
+if (!context) {
     console.error('Error: Failed to create a compute context!');
     process.exit(1);
 }
@@ -71,8 +71,7 @@ if (!context)
 err = ref.alloc(types.ErrorCode);
 commands = cl[Method.clCreateCommandQueue](context, ids.get(0), 0, err);
 
-if (!commands)
-{
+if (!commands) {
     console.error('Error: Failed to create a command commands!');
     process.exit(1);
 }
@@ -83,13 +82,12 @@ err = ref.alloc(types.ErrorCode);
 
 program = cl[Method.clCreateProgramWithSource](context, 1, srcCount, null, err);
 
-if (!program || err.deref() !== def.cl_errors.CL_SUCCESS)
-{
+if (!program || err.deref() !== def.cl_errors.CL_SUCCESS) {
     console.error('Error: Failed to create compute program!');
     process.exit(1);
 }
 
-err = cl[Method.clBuildProgram](program, 0, null, null, null, null);
+err = cl[Method.clBuildProgram](program, 0, null, '-cl-fast-relaxed-math', null, null);
 
 if (err != def.cl_errors.CL_SUCCESS) {
     let size = ref.alloc(ref.types.size_t, 2048).deref();
@@ -112,82 +110,97 @@ if (err.deref() != def.cl_errors.CL_SUCCESS) {
     console.log('Error: Failed to create compute kernel!');
 }
 
-input = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_READ_ONLY,  ref.types.float.size * count, null, null);
-output = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_WRITE_ONLY,  ref.types.float.size * count, null, null);
+err = ref.alloc(types.ErrorCode);
 
-if (!input || !output)
-{
+input = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_READ_ONLY, ref.types.double.size * count, null, err);
+
+console.log('err', err);
+err = ref.alloc(types.ErrorCode);
+
+output = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_WRITE_ONLY, ref.types.double.size * count, null, err);
+
+console.log('err', err);
+
+if (!input || !output) {
     console.log('Error: Failed to allocate device memory!');
     process.exit(1);
 }
 
-err = cl[Method.clEnqueueWriteBuffer](commands, input, def.cl_bool.CL_TRUE, 0, ref.types.float.size * count, data, 0, null, null);
+err = cl[Method.clEnqueueWriteBuffer](commands, input, def.cl_bool.CL_TRUE, 0, ref.types.double.size * count, data, 0, null, null);
 
-if (err != def.cl_errors.CL_SUCCESS)
-{
+if (err != def.cl_errors.CL_SUCCESS) {
     console.log(err);
     console.log('Error: Failed to write to source array!');
     process.exit(1);
 }
 
+console.log('size', ref.types.double.size);
 const _count = ref.alloc(ref.types.int16, count);
 err = 0;
 err = cl[Method.clSetKernelArg](kernel, 0, 8, input.ref());
 err |= cl[Method.clSetKernelArg](kernel, 1, 8, output.ref());
 err |= cl[Method.clSetKernelArg](kernel, 2, ref.types.uint.size, _count.ref());
-if (err != def.cl_errors.CL_SUCCESS)
-{
+if (err != def.cl_errors.CL_SUCCESS) {
     console.log('Error: Failed to set kernel arguments!', err);
     process.exit(1);
 }
 
-err = cl[Method.clGetKernelWorkGroupInfo](kernel, ids.get(0), def.cl_kernel_work_group_info.CL_KERNEL_WORK_GROUP_SIZE, ref.types.size_t.size, local, null);
-if (err != def.cl_errors.CL_SUCCESS)
-{
-    console.log('Error: Failed to retrieve kernel work group info! ', err);
-    process.exit(1);
-}
+// err = cl[Method.clGetKernelWorkGroupInfo](kernel, ids.get(0), def.cl_kernel_work_group_info.CL_KERNEL_WORK_GROUP_SIZE, ref.types.size_t.size, local, null);
+// if (err != def.cl_errors.CL_SUCCESS) {
+//     console.log('Error: Failed to retrieve kernel work group info! ', err);
+//     process.exit(1);
+// }
 
 let _global = new (types.SizeTArray)(1);
 let _local = new (types.SizeTArray)(1);
 _global.set(0, count);
 _local.set(0, local.deref());
 
-err = cl[Method.clEnqueueNDRangeKernel](commands, kernel, 1, null, _global, _local, 0, null, null);
+console.log(count, local.deref());
+// err = cl[Method.clEnqueueNDRangeKernel](commands, kernel, 1, null, _global, _local, 0, null, null);
+err = cl[Method.clEnqueueNDRangeKernel](commands, kernel, 1, null, _global, null, 0, null, null);
 
 console.log(err, def.cl_errors[err]);
 
-if (err != def.cl_errors.CL_SUCCESS)
-{
+if (err != def.cl_errors.CL_SUCCESS) {
     console.log('Error: Failed to execute kernel!');
     process.exit(1);
 }
 
-let results = new (new fastcall.ArrayType(ref.refType(ref.types.float)))(count);
+// let results = new (new fastcall.ArrayType(ref.refType(ref.types.double)))(count);
+let results = new Buffer(count * ref.types.double.size);
 
 cl[Method.clFinish](commands);
-    err = cl[Method.clEnqueueReadBuffer](commands, output, def.cl_bool.CL_TRUE, 0, ref.types.float.size * count, results.buffer /* pointer */, 0, null, null);
+// err = cl[Method.clEnqueueReadBuffer](commands, output, def.cl_bool.CL_TRUE, 0, ref.types.double.size * count, results.buffer /* pointer */, 0, null, null);
+err = cl[Method.clEnqueueReadBuffer](commands, output, def.cl_bool.CL_TRUE, 0, ref.types.double.size * count, results /* pointer */, 0, null, null);
 
-    console.log('err', err);
-    if (err != def.cl_errors.CL_SUCCESS)
-    {
-        console.log('Error: Failed to read output array! ', err);
-        process.exit(1);
-    }
+console.log('err', err);
+if (err != def.cl_errors.CL_SUCCESS) {
+    console.log('Error: Failed to read output array! ', err);
+    process.exit(1);
+}
 
-        console.log(results.buffer);
-        console.log(ref.types.float.get(results.buffer, 0));
-        console.log(Math.pow(_data[0], 2));
+// let offset = 0 * ref.types.double.size;
+// sum += double.get(h_c, offset);
 
-        cl[Method.clReleaseMemObject](input);
-        cl[Method.clReleaseMemObject](output);
-        cl[Method.clReleaseProgram](program);
-        cl[Method.clReleaseKernel](kernel);
-        cl[Method.clReleaseCommandQueue](commands);
-        cl[Method.clReleaseContext](context);
+// console.log(data.toString('hex'));
+console.log(results.toString('hex'));
+console.log(ref.types.double.get(results, 0));
+console.log(_data[0] * _data[0]);
 
-    // }, 2000);
+console.log(ref.types.double.get(results, 1 * ref.types.double.size));
+console.log(_data[1] * _data[1]);
+console.log(ref.types.double.get(results, 2 * ref.types.double.size));
+console.log(_data[2] * _data[2]);
+console.log('laatste:');
+console.log(ref.types.double.get(results, (count - 512) * ref.types.double.size));
+
+cl[Method.clReleaseMemObject](input);
+cl[Method.clReleaseMemObject](output);
+cl[Method.clReleaseProgram](program);
+cl[Method.clReleaseKernel](kernel);
+cl[Method.clReleaseCommandQueue](commands);
+cl[Method.clReleaseContext](context);
 
 console.log('doneeee!1aa');
-
 
