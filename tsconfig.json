@@ -17,5 +17,5 @@
         "noFallthroughCasesInSwitch": true,
         "allowUnreachableCode": false
     },
-    "files": [ "test.ts", "fastcall.d.ts" ]
+    "files": [ "test.ts" ]
 }

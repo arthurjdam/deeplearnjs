@@ -1,8 +1,8 @@
-export default `
-    __kernel void matrixMul(
-        __global float* C, 
-        __global float* A, 
-        __global float* B, 
+export default (precision) => `#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+    __kernel void mulMat(
+        __global ${precision}* A, 
+        __global ${precision}* B, 
+        __global ${precision}* C, 
         int wA, int wB) {
       
        int tx = get_global_id(0); 
