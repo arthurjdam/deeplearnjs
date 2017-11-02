@@ -1,5 +1,3 @@
-// import CL_Platform, {Method, types} from './src/opencl/cl_platform';
-// import * as fastcall from 'fastcall';
 import * as ref from 'ref';
 import * as def from './src/math/opencl/definitions_cl';
 
@@ -31,13 +29,13 @@ _cl.setBuffers({
         name: 'input',
         rw: def.cl_mem_flags.CL_MEM_READ_ONLY,
         size: ref.types[precision].size * count,
-        type: ref.types.float
+        type: { size: 8 }
     },
     {
         name: 'output',
         rw: def.cl_mem_flags.CL_MEM_WRITE_ONLY,
         size: ref.types[precision].size * count,
-        type: ref.types.float
+        type: { size: 8 }
     });
 }, 10);
 
@@ -142,7 +140,7 @@ err = ref.alloc(types.ErrorCode);
 //################################################################################################
 //################################################################################################
 
-input = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_READ_ONLY, ref.types[precision].size * count, null, err);
+    input = cl[Method.clCreateBuffer](context, def.cl_mem_flags.CL_MEM_READ_ONLY, ref.types[precision].size * count, null, err);
 
 console.log('err', err);
 err = ref.alloc(types.ErrorCode);

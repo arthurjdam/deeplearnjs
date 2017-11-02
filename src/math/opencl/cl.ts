@@ -51,7 +51,7 @@ export default class CL {
         return ids;
     }
 
-    getDevices(type: def.cl_device_type = def.cl_device_type.CL_DEVICE_TYPE_GPU): ArrayType<ref.Type> {
+    getDevices(type: def.cl_device_type = def.cl_device_type.CL_DEVICE_TYPE_CPU): ArrayType<ref.Type> {
         let ids = new (Type.DeviceIdArray)(1);
         let err;
         err = this.cl[Method.clGetDeviceIDs](null, type, 1, ids, null);
@@ -151,34 +151,38 @@ export default class CL {
     }
 
     setBuffers(...buffers:any[]):void {
-        const data = new Buffer(16);
-        let _buffers:any;
-        let err:any;
+        const data = new Buffer(1024);
+        let _buffers:any = {};
+        let err:any = ref.alloc(Type.ErrorCode);
 
         buffers.forEach((buffer) =>
         {
-            const size = ref.alloc(ref.types.size_t, buffer.size);
-            const flag = ref.alloc(ref.types.int, buffer.rw);
-            console.log(this.context);
-            // const context = ref.alloc(ref.types.size_t, this.context);
-
-            _buffers[buffer.name] = this.cl[Method.clCreateBuffer](this.context, flag, size, ref.NULL, err);
+            _buffers[buffer.name] = this.cl[Method.clCreateBuffer](this.context, buffer.rw, buffer.size, ref.NULL, err);
         });
+
+        console.log(err);
 
         buffers.filter((buffer) => buffer.rw === def.cl_mem_flags.CL_MEM_WRITE_ONLY).forEach((buffer) =>
         {
-            const size = ref.alloc(ref.types.uint, buffer.size);
-            err = this.cl[Method.clEnqueueWriteBuffer](this.queue, _buffers[buffer.name], def.cl_bool.CL_TRUE, ref.alloc(ref.types.uint, 0), size, data, 0, null, null);
+            err = this.cl[Method.clEnqueueWriteBuffer](this.queue, _buffers[buffer.name], def.cl_bool.CL_TRUE, 0, buffer.size, data, 0, null, null);
         });
+
+        console.log(err);
 
         buffers.forEach((buffer, index) =>
         {
             err = this.cl[Method.clSetKernelArg](this.kernel, index, buffer.type.size, _buffers[buffer.name].ref());
         });
 
-        let _global = ref.types.SizeTArray(1);
+        console.log(err);
+
+        let _global = new (new ArrayType(ref.types.size_t))(1);
         _global[0] = 1024;
-        err = this.cl[Method.clEnqueueNDRangeKernel](this.queue, this.kernel, 1, ref.NULL, _global, null, 0, null, null);
+        console.log(_global);
+        // _global.set(0, 1024);
+        err = this.cl[Method.clEnqueueNDRangeKernel](this.queue, this.kernel, 1, null, _global, null, 0, null, null);
+
+        console.log(err);
     }
 
     scope():void {
