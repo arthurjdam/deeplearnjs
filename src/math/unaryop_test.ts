@@ -65,13 +65,38 @@ import {Array1D, Array2D, Scalar} from './ndarray';
       a.dispose();
     });
 
-    it('propagates NaNs', math => {
+    it('propagates NaNs, float32', math => {
       const a = Array1D.new([1, -2, 0, 3, -0.1, NaN]);
 
       const result = math.relu(a);
 
+      expect(result.dtype).toBe('float32');
       test_util.expectArraysClose(
           result.getValues(), new Float32Array([1, 0, 0, 3, 0, NaN]));
+
+      a.dispose();
+    });
+
+    it('propagates NaNs, int32', math => {
+      const a = Array1D.new([1, -2, 0, 3, -1, util.NAN_INT32], 'int32');
+
+      const result = math.relu(a);
+
+      expect(result.dtype).toBe('int32');
+      test_util.expectArraysClose(
+          result.getValues(), new Int32Array([1, 0, 0, 3, 0, util.NAN_INT32]));
+
+      a.dispose();
+    });
+
+    it('propagates NaNs, bool', math => {
+      const a = Array1D.new([1, 0, 0, 1, 0, util.NAN_BOOL], 'bool');
+
+      const result = math.relu(a);
+
+      expect(result.dtype).toBe('bool');
+      test_util.expectArraysClose(
+          result.getValues(), new Uint8Array([1, 0, 0, 1, 0, util.NAN_BOOL]));
 
       a.dispose();
     });
@@ -241,8 +266,8 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
       const r = math.sqrt(a);
 
-      expect(r.get(0)).toBeCloseTo(Math.sqrt(2));
-      expect(r.get(1)).toBeCloseTo(Math.sqrt(4));
+      test_util.expectNumbersClose(r.get(0), Math.sqrt(2));
+      test_util.expectNumbersClose(r.get(1), Math.sqrt(4));
 
       a.dispose();
     });
@@ -266,6 +291,44 @@ import {Array1D, Array2D, Scalar} from './ndarray';
   ]);
 }
 
+// math.square
+{
+  const tests: MathTests = it => {
+    it('1D array', math => {
+      const a = Array1D.new([2, 4, Math.sqrt(2)]);
+      const r = math.square(a);
+      test_util.expectArraysClose(r.getValues(), new Float32Array([4, 16, 2]));
+      a.dispose();
+    });
+
+    it('2D array', math => {
+      const a = Array2D.new([2, 2], [1, 2, Math.sqrt(2), Math.sqrt(3)]);
+      const r = math.square(a);
+      expect(r.shape).toEqual([2, 2]);
+      test_util.expectArraysClose(
+          r.getValues(), new Float32Array([1, 4, 2, 3]));
+      a.dispose();
+    });
+
+    it('square propagates NaNs', math => {
+      const a = Array1D.new([1.5, NaN]);
+
+      const r = math.square(a).getValues();
+
+      test_util.expectArraysClose(r, new Float32Array([2.25, NaN]));
+
+      a.dispose();
+    });
+  };
+
+  test_util.describeMathCPU('square', [tests]);
+  test_util.describeMathGPU('square', [tests], [
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 1},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 2},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': false, 'WEBGL_VERSION': 1}
+  ]);
+}
+
 // math.log
 {
   const tests: MathTests = it => {
@@ -274,8 +337,8 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
       const r = math.log(a);
 
-      expect(r.get(0)).toBeCloseTo(Math.log(1));
-      expect(r.get(1)).toBeCloseTo(Math.log(2));
+      test_util.expectNumbersClose(r.get(0), Math.log(1));
+      test_util.expectNumbersClose(r.get(1), Math.log(2));
 
       a.dispose();
     });
@@ -307,9 +370,9 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
       const r = math.ceil(a);
 
-      expect(r.get(0)).toBeCloseTo(2);
-      expect(r.get(1)).toBeCloseTo(3);
-      expect(r.get(2)).toBeCloseTo(-1);
+      test_util.expectNumbersClose(r.get(0), 2);
+      test_util.expectNumbersClose(r.get(1), 3);
+      test_util.expectNumbersClose(r.get(2), -1);
 
       a.dispose();
     });
@@ -341,9 +404,9 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
       const r = math.floor(a);
 
-      expect(r.get(0)).toBeCloseTo(1);
-      expect(r.get(1)).toBeCloseTo(2);
-      expect(r.get(2)).toBeCloseTo(-2);
+      test_util.expectNumbersClose(r.get(0), 1);
+      test_util.expectNumbersClose(r.get(1), 2);
+      test_util.expectNumbersClose(r.get(2), -2);
 
       a.dispose();
     });
@@ -375,9 +438,9 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
       const r = math.exp(a);
 
-      expect(r.get(0)).toBeCloseTo(Math.exp(1));
-      expect(r.get(1)).toBeCloseTo(Math.exp(2));
-      expect(r.get(2)).toBeCloseTo(1);
+      test_util.expectNumbersClose(r.get(0), Math.exp(1));
+      test_util.expectNumbersClose(r.get(1), Math.exp(2));
+      test_util.expectNumbersClose(r.get(2), 1);
 
       a.dispose();
     });
@@ -740,6 +803,66 @@ import {Array1D, Array2D, Scalar} from './ndarray';
 
   test_util.describeMathCPU('tanh', [tests]);
   test_util.describeMathGPU('tanh', [tests], [
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 1},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 2},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': false, 'WEBGL_VERSION': 1}
+  ]);
+}
+
+// math.leakyRelu
+{
+  const tests: MathTests = it => {
+    it('basic', math => {
+      const a = Array1D.new([0, 1, -2]);
+      const result = math.leakyRelu(a);
+
+      expect(result.shape).toEqual(a.shape);
+      test_util.expectArraysClose(
+          result.dataSync(), new Float32Array([0, 1, -0.4]));
+    });
+
+    it('propagates NaN', math => {
+      const a = Array1D.new([0, 1, NaN]);
+      const result = math.leakyRelu(a);
+
+      expect(result.shape).toEqual(a.shape);
+      test_util.expectArraysClose(
+          result.dataSync(), new Float32Array([0, 1, NaN]));
+    });
+
+  };
+
+  test_util.describeMathCPU('leakyRelu', [tests]);
+  test_util.describeMathGPU('leakyRelu', [tests], [
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 1},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 2},
+    {'WEBGL_FLOAT_TEXTURE_ENABLED': false, 'WEBGL_VERSION': 1}
+  ]);
+}
+
+// math.elu
+{
+  const tests: MathTests = it => {
+    it('calculate elu', math => {
+      const a = Array1D.new([1, -1, 0]);
+      const result = math.elu(a);
+
+      expect(result.shape).toEqual(a.shape);
+      test_util.expectArraysClose(
+          result.dataSync(), new Float32Array([1, -0.6321, 0]));
+    });
+
+    it('elu propagates NaN', math => {
+      const a = Array1D.new([1, NaN]);
+      const result = math.elu(a);
+      expect(result.shape).toEqual(a.shape);
+      test_util.expectArraysClose(
+          result.dataSync(), new Float32Array([1, NaN]));
+    });
+
+  };
+  test_util.describeMathCPU('elu', [tests]);
+  test_util.describeMathGPU('elu', [tests], [
     {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 1},
     {'WEBGL_FLOAT_TEXTURE_ENABLED': true, 'WEBGL_VERSION': 2},
     {'WEBGL_FLOAT_TEXTURE_ENABLED': false, 'WEBGL_VERSION': 1}
