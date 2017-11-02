@@ -1,7 +1,7 @@
 // import CL_Platform, {Method, types} from './src/opencl/cl_platform';
 // import * as fastcall from 'fastcall';
 import * as ref from 'ref';
-import * as def from './src/opencl/definitions';
+import * as def from './src/math/opencl/definitions_cl';
 
 import CL from './src/math/opencl/cl';
 
@@ -26,6 +26,7 @@ __kernel void square(
 const count = 1024;
 
 _cl.setProgram(vecAdd, 'square');
+setTimeout(() => {
 _cl.setBuffers({
         name: 'input',
         rw: def.cl_mem_flags.CL_MEM_READ_ONLY,
@@ -38,6 +39,7 @@ _cl.setBuffers({
         size: ref.types[precision].size * count,
         type: ref.types.float
     });
+}, 10);
 
 return;
 /*
