@@ -1,87 +1,157 @@
+import '../demo-header';
+import '../demo-footer';
+
 import {
     Array1D,
     CostReduction,
     Graph,
     InCPUMemoryShuffledInputProviderBuilder,
-    NDArrayMathGPU,
+    NDArrayMathCPU,
     Session,
-    SGDOptimizer
+    SGDOptimizer,
+    Tensor
 } from '../deeplearn';
 
-const graph = new Graph();
-const math = new NDArrayMathGPU();
+enum CostFunctions {
+    mse,
+    sce
+}
 
-const input = graph.placeholder('input', [2]);
-const y = graph.placeholder('y', [1]);
+enum ActivationFunctions {
+    tanh,
+    sigmoid
+}
 
-const hiddenLayer = graph.layers.dense(
-    'hiddenLayer',
-    input,
-    2,
-    (x) => graph.relu(x), true);
-const output = graph.layers.dense('outputLayer', hiddenLayer, 1);
+/*
+* Hyper-parameters
+ */
+const BATCH_SIZE = 5;
+const STEPS = 10000;
+const EPOCH = 1000;
+const ACTIVATION:ActivationFunctions = ActivationFunctions.sigmoid; // or tanh
+const COST:CostFunctions = CostFunctions.mse;
+const LEARNING_RATE = 0.05;
 
-const costTensor = graph.meanSquaredCost(output, y);
-
-const session = new Session(graph, math);
-const optimizer = new SGDOptimizer(0.01);
-
+/*
+* Set input and output data
+ */
 const inputArray = [
-    Array1D.new([0, 0]),
-    Array1D.new([0, 1]),
-    Array1D.new([1, 0]),
-    Array1D.new([1, 1])
-];
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1]
+].map(x => Array1D.new(x));
 
 const targetArray = [
-    Array1D.new([0]),
-    Array1D.new([1]),
-    Array1D.new([1]),
-    Array1D.new([0])
-];
+    0,
+    1,
+    1,
+    0
+].map(x => Array1D.new([x, 1 - x]));
 
-const shuffledInputProviderBuilder =
-    new InCPUMemoryShuffledInputProviderBuilder([
-        inputArray,
-        targetArray
-    ]);
-
-const [
-    inputProvider,
-    targetProvider
-] = shuffledInputProviderBuilder.getInputProviders();
-
-const feedEntries = [
-    {tensor: input, data: inputProvider},
-    {tensor: y, data: targetProvider}
-];
-
-/**
- * Train the model
+/*
+* Instantiate the graph we'll be adding our network to
  */
-for (let i = 0; i < 1000; i += 1) {
+const graph = new Graph();
 
-    math.scope(() => {
+/*
+* Instantiate the math processor (either NDArrayMathCPU or NDArrayMathGPU)
+ */
+const math = new NDArrayMathCPU();
 
-        const cost = session.train(
+/*
+* Create placeholders for input and output
+ */
+const x = graph.placeholder('x', [2]);
+const y = graph.placeholder('y', [2]);
+
+/*
+* Set up the hidden layer, with a given activation function
+ */
+let hiddenLayer: Tensor;
+if (ACTIVATION === ActivationFunctions.sigmoid) {
+    hiddenLayer = graph.layers.dense(
+        'hiddenLayer',
+        x,
+        5,
+        (x) => graph.sigmoid(x), true);
+} else if (ACTIVATION === ActivationFunctions.tanh) {
+    hiddenLayer = graph.layers.dense(
+        'hiddenLayer',
+        x,
+        5,
+        (x) => graph.tanh(x), true);
+}
+
+/*
+* Set up the output layer
+ */
+const output = graph.layers.dense(
+    'outputLayer',
+    hiddenLayer,
+    2);
+
+/*
+* Set up a method to calculate cost
+ */
+let costTensor: Tensor;
+if (COST === CostFunctions.mse) {
+    costTensor = graph.meanSquaredCost(output, y);
+} else if (COST === CostFunctions.sce) {
+    costTensor = graph.softmaxCrossEntropyCost(output, y);
+}
+
+/*
+* Instantiate a new Sessions
+ */
+const session = new Session(graph, math);
+
+/*
+* Initialize the Optimizer. In this case: we're using a Stochastic Gradient
+* Descent optimizer
+ */
+const optimizer = new SGDOptimizer(LEARNING_RATE);
+
+math.scope(() => {
+    /*
+     * Train the model
+     */
+    for (let i = 0; i < STEPS; ++i) {
+        /*
+        * Shuffle the input and output arrays
+         */
+        const [
+            inputProvider,
+            targetProvider
+        ] = new InCPUMemoryShuffledInputProviderBuilder([
+            inputArray,
+            targetArray
+        ]).getInputProviders();
+
+        const feedEntries = [
+            {tensor: x, data: inputProvider},
+            {tensor: y, data: targetProvider}
+        ];
+
+        session.train(
             costTensor,
             feedEntries,
-            5,
+            BATCH_SIZE,
             optimizer,
             CostReduction.MEAN);
 
-        if (i % 10 === 0) {
-            const costValue = cost.get();
-            console.log(costValue);
+        if (i % EPOCH === 0) {
+            // console.log(cost.get());
+            console.log(i);
         }
-    });
-}
+    }
 
-/**
- * Test the model
- */
-for (let i = 0; i < 4; i += 1) {
-    const data = inputArray[i];
-    const val = session.eval(output, [{tensor: input, data}]);
-    console.log(data.dataSync(), val.getValues());
-}
+    /*
+     * Test the model
+     */
+    for (let i = 0; i < 4; i += 1) {
+        const data = inputArray[i];
+        const val = session.eval(output, [{tensor: x, data}]);
+        console.log(data.dataSync(), val.dataSync()[0]);
+    }
+});
