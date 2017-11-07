@@ -268,8 +268,10 @@ const FLOAT_TEXTURE_SETOUTPUT_SNIPPET = `
 `;
 
 const SHADER_PREFIX = `
+  #ifdef GL_ES
   precision highp float;
   precision highp int;
+  #endif
   varying vec2 resultUV;
   const vec2 halfCR = vec2(0.5, 0.5);
 

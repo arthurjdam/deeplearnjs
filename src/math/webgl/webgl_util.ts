@@ -16,6 +16,7 @@
  */
 
 let MAX_TEXTURE_SIZE: number = null;
+declare let global:any;
 
 import * as util from '../../util';
 import {ENV} from '../../environment';
@@ -34,6 +35,12 @@ export interface WebGLLoseContextExtension { loseContext(): void; }
 
 export function createWebGLRenderingContext(attributes: WebGLContextAttributes):
     WebGLRenderingContext {
+
+  if(typeof window === 'undefined') {
+    const webgl = require('node-webgl');
+    global.document = webgl.document();
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;

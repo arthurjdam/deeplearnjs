@@ -54,7 +54,9 @@ export function createWebGLContext(canvas?: HTMLCanvasElement) {
 
 export function createVertexShader(gl: WebGLRenderingContext): WebGLShader {
   const vertexShaderSource = `
+    #ifdef GL_ES
     precision highp float;
+    #endif
     attribute vec3 clipSpacePos;
     attribute vec2 uv;
     varying vec2 resultUV;
