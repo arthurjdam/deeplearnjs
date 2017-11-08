@@ -41,8 +41,7 @@
     "test": "karma start",
     "test-travis": "karma start --browsers='bs_firefox_mac,bs_chrome_mac' --singleRun",
     "lint": "tslint -p . --type-check -t verbose",
-    "make-version": "./scripts/make-version",
-    "run-headless": "tsc -p . -w & nodemon --delay 10ms dist/test.js"
+    "make-version": "./scripts/make-version"
   },
   "dependencies": {
     "seedrandom": "~2.4.3"
