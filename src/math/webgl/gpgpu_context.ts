@@ -50,14 +50,21 @@ export class GPGPUContext {
           webgl_util.getExtensionOrThrow(this.gl, 'OES_texture_float');
       this.colorBufferFloatExtension =
           this.gl.getExtension('WEBGL_color_buffer_float');
-    } else {
+    } else if (typeof window !== 'undefined') {
       this.colorBufferFloatExtension =
           webgl_util.getExtensionOrThrow(this.gl, 'EXT_color_buffer_float');
+    } else {
+      this.textureFloatExtension =
+          webgl_util.getExtensionOrThrow(this.gl, 'GL_ARB_texture_float');
+      this.colorBufferFloatExtension =
+          webgl_util.getExtensionOrThrow(this.gl, 'GL_ARB_color_buffer_float');
     }
 
-    this.loseContextExtension =
+    if(typeof window !== 'undefined') {
+      this.loseContextExtension =
         webgl_util.getExtensionOrThrow(this.gl, 'WEBGL_lose_context') as
-        WebGLLoseContextExtension;
+          WebGLLoseContextExtension;
+    }
 
     if (ENV.get('WEBGL_GET_BUFFER_SUB_DATA_ASYNC_EXTENSION_ENABLED')) {
       this.getBufferSubDataAsyncExtension =
@@ -286,16 +293,17 @@ export class GPGPUContext {
   }
 
   public executeProgram(attribLocations?: {[name: string]: number}) {
-    this.throwIfDisposed();
-    this.throwIfNoProgram();
+    // this.throwIfDisposed();
+    // this.throwIfNoProgram();
     const gl = this.gl;
     gpgpu_util.bindVertexProgramAttributeStreams(
         gl, this.program, this.vertexBuffer, attribLocations);
-    if (this.autoDebugValidate) {
-      this.debugValidate();
-    }
+    // if (this.autoDebugValidate) {
+    //   this.debugValidate();
+    // }
+
     webgl_util.callAndCheck(
-        gl, () => gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0));
+      gl, () => gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0));
   }
 
   public blockUntilAllProgramsCompleted() {

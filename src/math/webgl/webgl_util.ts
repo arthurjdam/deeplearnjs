@@ -16,6 +16,7 @@
  */
 
 let MAX_TEXTURE_SIZE: number = null;
+// tslint:disable-next-line:no-any
 declare let global:any;
 
 import * as util from '../../util';
@@ -37,8 +38,18 @@ export function createWebGLRenderingContext(attributes: WebGLContextAttributes):
     WebGLRenderingContext {
 
   if(typeof window === 'undefined') {
+    // tslint:disable-next-line:no-require-imports
     const webgl = require('node-webgl');
     global.document = webgl.document();
+    global.document.setTitle('DeeplearnJS');
+
+    const gl = global.document
+        .createElement('canvas')
+        .getContext('experimental-webgl', attributes);
+    gl.viewportWidth = 1;
+    gl.viewportHeight = 1;
+
+    return gl;
   }
 
   const canvas = document.createElement('canvas');

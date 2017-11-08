@@ -70,7 +70,7 @@ export {
 function exportToTopLevel(alias: string): void {
   setTimeout(() => {
     // tslint:disable-next-line:no-any
-    const w: any = window;
+    const w: any = (typeof window === 'undefined') ? null : window;
     if (w != null && w.deeplearn != null && w[alias] == null) {
       w[alias] = w.deeplearn;
     }

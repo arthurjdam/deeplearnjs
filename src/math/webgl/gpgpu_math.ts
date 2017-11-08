@@ -23,7 +23,7 @@ import {GPGPUContext} from './gpgpu_context';
 import * as shader_compiler from './shader_compiler';
 import {ShapeInfo} from './shader_compiler';
 
-const ATTRIBUTE_NAMES = ['uv', 'clipSpacePos'];
+const ATTRIBUTE_NAMES = ['clipSpacePos', 'uv'];
 
 export interface GPGPUProgram {
   variableNames: string[];

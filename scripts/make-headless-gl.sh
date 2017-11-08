@@ -16,4 +16,4 @@
 
 # if necessary, on OS X, run brew install anttweakbar freeimage glew glfw3
 npm install node-webgl
-#npm install canvas
+npm install segfault-handler
